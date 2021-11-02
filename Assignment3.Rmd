@@ -1,0 +1,241 @@
+---
+title: "Assignment 3"
+author: "Pernille Breili, Aleksander Josdal, Vemund Lien & Tonje Fredriksen"
+date: "11/2/2021"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+# Simulering av to ulike studier 
+
+```{r, echo=FALSE, message=FALSE}
+
+library(tidyverse)
+
+set.seed(1)
+population <- rnorm(1000000, mean = 1.5, sd = 3)
+
+
+samp1 <- data.frame(y = sample(population, 8, replace = FALSE))
+
+samp2 <- data.frame(y = sample(population, 40, replace = FALSE))
+
+
+m1 <- lm(y ~ 1, data = samp1)
+m2 <- lm(y ~ 1, data = samp2)
+
+summary(m1)
+summary(m2)
+
+```
+
+# Spørsmål
+
+## 1. Forklar følgende begreper: 
+Estimat: Gjennomsnittlige verdier  
+Standardfeil: Standardfeil til gjennomsnittet er et estimat av standardavviket for en populasjon.
+T-verdi: Ratio mellom estimatet og standardfeilen. Jo lavere standardfeilen er, desto høyere      høyere blir t-verdien. 
+P-verdi: P-verdi måler sannsynligheten for at de observerte forskjellene vi ser i et 
+datasett bare har skjedd ved en tilfeldighet. Jo lavere p-verdi, desto større statistisk 
+signifikans av den observerte forskjellen. P-verdi kan brukes om et alternativ til, eller i 
+tillegg til forhåndsvalgte konfindensnivåer for hypotesetesting. Jo lavere p-verdi vi har, 
+desto høyere t-verdi får vi. Dette vil også si høyere bevis for at nullhypotesen er feil. 
+      
+
+## 2. Hva betyr forskjellene mellom resultatene i m1 og m2? 
+m2 har et større utvalg (40 deltakere) og vi vil derfor her ha en lavere standardfeil, som 
+vil si at vi kan være sikrere på resultatene våres. Jo mindre standardfeil vi har, desto høyere t-verdi har vi, i tillegg til en lavere p-verdi. Dette til sammen øker beviset for at       nullhypotesen er feil. Et mindre utvalg gir større usikkerhet fordi gjennomsnittsverdiene er      mindre presise, det betyr at ekstreme verdier blir mindre overraskende. Dette vil igjen 
+påvirke på vår p-verdi.  
+      
+## 3. Hvorfor bruker vi de skraverte områdene i nedre og øvre hale av t-distribusjonen? 
+De skraverte områdene markerer forkastelsesområder. Dette vil si at vi forkaster 
+nullhypotesen hvis verdien vår er innenfor dette område. Jo større utvalgsstørrelse, desto 
+smalere vil halene i t-distribusjonen være. Da kan vi være mer sikre på at vi gjør det 
+riktig i å forkaste nullhypotesen. Det vil si - mindre sannsynlig for å få type I- og type II-feil. 
+      
+
+# Simulering av 1000 studier 
+
+```{r, echo=FALSE, message=FALSE}
+
+set.seed(1)
+# Create data frames to store the model estimates
+results_8 <- data.frame(estimate = rep(NA, 1000), 
+                      se = rep(NA, 1000), 
+                      pval = rep(NA, 1000), 
+                      n = 8)  
+
+results_40 <- data.frame(estimate = rep(NA, 1000), 
+                      se = rep(NA, 1000), 
+                      pval = rep(NA, 1000), 
+                      n = 40)
+
+# A for loop used to sample 1000 studies, each iteration (i) will draw a new sample
+# from the population. 
+
+for(i in 1:1000) {
+  
+  # Draw a sample 
+  samp1 <- data.frame(y = sample(population, 8, replace = FALSE))
+  samp2 <- data.frame(y = sample(population, 40, replace = FALSE))
+
+  # Model the data
+  m1 <- lm(y ~ 1, data = samp1)
+  m2 <- lm(y ~ 1, data = samp2)
+  
+  # Extract values from the models
+  results_8[i, 1] <- coef(summary(m1))[1, 1]
+  results_8[i, 2] <- coef(summary(m1))[1, 2]
+  results_8[i, 3] <- coef(summary(m1))[1, 4]
+
+  results_40[i, 1] <- coef(summary(m2))[1, 1]
+  results_40[i, 2] <- coef(summary(m2))[1, 2]
+  results_40[i, 3] <- coef(summary(m2))[1, 4]
+  
+  
+}
+
+
+# Save the results in a combined data frame
+
+results <- bind_rows(results_8, results_40)
+
+```
+
+## 4. a. Kalkuler standardavvik av gjennomsnittet (estimat) og gjennomsnittet av standardfeilen for hver utvalgsstørrelsen?   
+
+```{r, echo=FALSE, message=FALSE}
+
+set.seed(1)
+dat <- results %>% 
+  group_by(n) %>% 
+  summarise(estimate_sd = sd(estimate),
+            se_mean = mean(se))
+
+dat
+
+```
+
+b. Forklar hvorfor disse verdiene er veldig like? Hvordan kan vi definere standardfeil i lyset av disse kalkulasjonene?
+Standardavvik er variasjonen i de gjennomsnittlige verdiene i et utvalg. Standardfeil er gjennomsnittet til et estimat av standardavviket for en populasjon. Standardfeil beregnes ut ifra standardavviket og utvalgsstørrelsen. 
+$$SE = \frac{sd}{\sqrt{n}}$$
+Standardavviket til utvalget samsvarer med standardfeilen som skal si noe om populasjonen. Vi gjorde forsøket 1000 ganger og dette jevner ut standard avviket til utvalget. Standardfeilen ble ganske lik standardavviket som vil si at utvalget er representativt for populasjonen.
+
+## 5. Lag et histogram for p-verdiene i hvert av utvalgsstørrelsene. Hvordan kan vi tolke disse histogrammene, og hva forteller de om hvilken effekt utvalgsstørrelsen har på statistisk effekt? 
+
+```{r, echo=FALSE, message=FALSE}
+
+set.seed(1)
+results %>%
+  ggplot(aes(pval)) + 
+  geom_histogram() +
+  facet_wrap(~ n)
+
+```
+
+Ut ifra histogrammene ser vi at utvalgsstørrelsen med 8 deltakere gir en større spredning i p-verdiene, og at dette er til forskjell fra en utvalgsstørrelse med 40 deltakere der de fleste studier får en statistisk signifikant p-verdi. Dette betyr at økt utvalgsstørrelse gir større sannsynlighet for at studier finner en sann effekt, og at utvalgsstørrelse dermed vil påvirke statistisk effekt. 
+
+## 6. Kalkuler antall studier fra hver utvalgsstørrelse som detekterer en statistisk signifikant effekt (spesifiser en grenseverdi for alpha)
+
+```{r, echo=FALSE, message=FALSE}
+
+set.seed(1)
+results %>%
+  filter(pval < 0.05) %>%
+  group_by(n) %>%
+  summarise(sig_results = n()/1000)
+
+```
+
+For utvalgsstørrelse 8 viser 22,7 % av studiene en statistisk signifikant effekt, med grenseverdi for alpha på 0.05. Utvalgsstørrelse 40 finner derimot at 86,5 % av studiene har en statistisk signifikant effekt. Jo større utvalgsstørrelse, jo større effekt får vi. 
+
+
+## 7. Bruk pwr package og kalkuler effekten av en ensidig t-test, med en effektstørrelse på 1.5/3, det spesifikke signifikansnivået og utvalgsstørrelse 8 og 40. Forklar resultatene i lyset av simuleringene. 
+
+```{r, echo=FALSE, message=FALSE}
+
+library(pwr)
+
+set.seed(1)
+pwr.t.test(n = 8, sig.level = 0.05, d = 1.5/3, type = "one.sample")
+pwr.t.test(n = 40, sig.level = 0.05, d = 1.5/3, type = "one.sample")
+
+
+```
+
+Ut ifra simuleringene vi har gjort kan vi si igjen at utvalgsstørrelse er med på å bestemme den statistiske effekten man finner. Utvalgsstørrelsen med 40 deltakere gir en høyere effekt enn utvalgsstørrelsen med 8 deltakere. 
+
+
+# Mange studier uten populasjonseffekt 
+
+```{r, echo=FALSE, message=FALSE}
+
+set.seed(2)
+population <- rnorm(1000000, mean = 0, sd = 3)
+
+
+# Create data frames to store the model estimates
+results_8 <- data.frame(estimate = rep(NA, 1000), 
+                      se = rep(NA, 1000), 
+                      pval = rep(NA, 1000), 
+                      n = 8)  
+
+results_40 <- data.frame(estimate = rep(NA, 1000), 
+                      se = rep(NA, 1000), 
+                      pval = rep(NA, 1000), 
+                      n = 40)
+
+# A for loop used to sample 1000 studies, each iteration (i) will draw a new sample
+# from the population. 
+
+for(i in 1:1000) {
+  
+  # Draw a sample 
+  samp1 <- data.frame(y = sample(population, 8, replace = FALSE))
+  samp2 <- data.frame(y = sample(population, 40, replace = FALSE))
+
+  # Model the data
+  m1 <- lm(y ~ 1, data = samp1)
+  m2 <- lm(y ~ 1, data = samp2)
+  
+  # Extract values from the models
+  results_8[i, 1] <- coef(summary(m1))[1, 1]
+  results_8[i, 2] <- coef(summary(m1))[1, 2]
+  results_8[i, 3] <- coef(summary(m1))[1, 4]
+
+  results_40[i, 1] <- coef(summary(m2))[1, 1]
+  results_40[i, 2] <- coef(summary(m2))[1, 2]
+  results_40[i, 3] <- coef(summary(m2))[1, 4]
+  
+  
+}
+
+
+# Save the results in a combined data frame
+
+results_null <- bind_rows(results_8, results_40)
+
+
+results_null %>%
+  ggplot(aes(pval)) + 
+  geom_histogram() +
+  facet_wrap(~ n)
+
+```
+
+## 8. Med et signifikansnivå på 5 %, hvor mange studier gir oss et "falskt positiv" resultat hvis man repeterer studiene mange ganger? 
+
+```{r, echo=FALSE, message=FALSE}
+
+set.seed(2)
+results_null %>%
+  filter(pval < 0.05) %>%
+  group_by(n) %>%
+  summarise(sig_results = n()/1000)
+
+```
+
+4,5 % av studiene med utvalgsstørrelse 8 gir oss et "falskt positivt" resultat, mens med utvalgsstørrelsen på 40 vil 3,9 % av studiene gi oss et "falskt positivt" resultat. 
